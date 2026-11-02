@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My MLM Network</title>
+    <style>
+        /* बेसिक स्टाइल */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #f0f4f8; color: #333; }
+        
+        /* हेडर */
+        .header { background: #2b6cb0; color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: bold; }
+
+        /* पेज कंट्रोल */
+        .page { display: none; padding: 20px; max-width: 600px; margin: auto; }
+        .active-page { display: block; }
+
+        /* कार्ड और फॉर्म */
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        
+        /* बटन */
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-green { background: #38a169; color: white; }
+        .btn-blue { background: #3182ce; color: white; }
+        .btn-red { background: #e53e3e; color: white; }
+
+        /* डैशबोर्ड स्टाइल */
+        .wallet-box { background: #2b6cb0; color: white; text-align: center; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .wallet-box h2 { font-size: 16px; font-weight: normal; }
+        .wallet-box h1 { font-size: 36px; margin: 10px 0; }
+        
+        /* टीम लिस्ट */
+        .team-list { list-style: none; }
+        .team-list li { padding: 10px; background: #edf2f7; margin-bottom: 5px; border-radius: 5px; border-left: 4px solid #38a169; display: flex; justify-content: space-between; }
+
+        /* लोडर (पेमेंट के समय) */
+        #loader { display: none; text-align: center; color: #2b6cb0; font-weight: bold; padding: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">MLM Network</div>
+
+    <!-- ==================== 1. रजिस्ट्रेशन पेज ==================== -->
+    <div id="registerPage" class="page active-page">
+        <div class="card">
+            <h3 style="text-align: center; margin-bottom: 15px; color: #2b6cb0;">Create Your Account</h3>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="regName" placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+                <label>Mobile Number</label>
+                <input type="tel" id="regMobile" placeholder="10 digit mobile number">
+            </div>
+            <div class="form-group">
+                <label>Full Address</label>
+                <textarea id="regAddress" rows="2" placeholder="Enter your address"></textarea>
+            </div>
+
+            <!-- ====== आपका QR कोड यहाँ लगा है ====== -->
+            <div style="text-align: center; margin-top: 20px; border: 1px dashed #2b6cb0; padding: 15px; border-radius: 8px; background-color: #f8fbff;">
+                <p style="font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">Pay ₹1499 to Join</p>
+                <p style="font-size: 12px; color: #666; margin-bottom: 10px;">(Scan the QR code below)</p>
+                <!-- QR Code इमेज -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=YOUR_UPI_ID" alt="Payment QR Code" style="width: 200px; height: 200px; border: 5px solid white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+            </div>
+            <!-- ================================ -->
+
+            <button class="btn btn-green" onclick="processPayment()">I have paid, Join Now</button>
+            <div id="loader">Processing... Please wait.</div>
+        </div>
+    </div>
+
+    <!-- ==================== 2. डैशबोर्ड / प्रोफाइल पेज ==================== -->
+    <div id="dashboardPage" class="page">
+        <!-- वॉलेट -->
+        <div class="wallet-box">
+            <h2>My Wallet Balance</h2>
+            <h1 id="walletAmount">₹0</h1>
+            <button class="btn btn-blue" onclick="transferToBank()">Transfer to Bank Account</button>
+        </div>
+
+        <!-- टीम की जानकारी -->
+        <div class="card">
+            <h3 style="margin-bottom: 10px;">My Team (Total: <span id="totalTeamCount">0</span>)</h3>
+            <p style="font-size: 14px; color: #666; margin-bottom: 15px;">Level 1 joins: <span id="level1Count">0</span> / 11</p>
+            <button class="btn btn-green" onclick="simulateJoin(1)">[Demo] Join 1 Person</button>
+            <button class="btn btn-green" onclick="simulateJoin(11)" style="margin-top: 5px;">[Demo] Join 11 Persons</button>
+            <button class="btn btn-green" onclick="simulateJoin(109)" style="margin-top: 5px;">[Demo] Join 109 Persons</button>
+            
+            <h4 style="margin-top: 20px; margin-bottom: 10px;">My Downline</h4>
+            <ul id="teamList" class="team-list">
+                <li>No members yet.</li>
+            </ul>
+        </div>
+
+        <button class="btn btn-red" onclick="logout()">Logout</button>
+    </div>
+
+    <script>
+        // --- सिस्टम का डेटा ---
+        let currentUser = {
+            name: "",
+            wallet: 0,
+            teamSize: 0,
+            level1Joins: 0
+        };
+
+        // --- 1. पेमेंट और रजिस्ट्रेशन फंक्शन ---
+        function processPayment() {
+            let name = document.getElementById('regName').value;
+            let mobile = document.getElementById('regMobile').value;
+            let address = document.getElementById('regAddress').value;
+
+            if(name === "" || mobile === "" || address === "") {
+                alert("Please fill all details!");
+                return;
+            }
+
+            document.getElementById('loader').style.display = 'block';
+
+            setTimeout(() => {
+                document.getElementById('loader').style.display = 'none';
+                alert("Welcome " + name + "! Your account is created.");
+                
+                currentUser.name = name;
+                
+                document.getElementById('registerPage').classList.remove('active-page');
+                document.getElementById('dashboardPage').classList.add('active-page');
+                
+                updateDashboard();
+            }, 1500);
+        }
+
+        // --- 2. डैशबोर्ड अपडेट ---
+        function updateDashboard() {
+            document.getElementById('walletAmount').innerText = "₹" + currentUser.wallet.toLocaleString('en-IN');
+            document.getElementById('totalTeamCount').innerText = currentUser.teamSize;
+            document.getElementById('level1Count').innerText = currentUser.level1Joins;
+        }
+
+        // --- 3. लोगों को जोड़ने का डेमो ---
+        function simulateJoin(numberOfPeople) {
+            let commissionEarned = 0;
+            let names = ["Rahul", "Amit", "Priya", "Vikram", "Neha", "Rohan", "Sneha", "Arjun", "Kavita", "Suresh", "Anjali"];
+            
+            for(let i=0; i<numberOfPeople; i++) {
+                currentUser.teamSize++;
+                currentUser.level1Joins++;
+                
+                if(currentUser.teamSize === 11) {
+                    commissionEarned += 1500;
+                    alert("Congratulations! You completed Level 1. ₹1500 added to wallet.");
+                }
+                else if(currentUser.teamSize === 121) {
+                    commissionEarned += 9900;
+                    alert("Congratulations! You completed Level 2. ₹9900 added to wallet.");
+                }
+
+                if(i < 5) { 
+                    let list = document.getElementById('teamList');
+                    if(list.innerHTML.includes("No members yet")) { list.innerHTML = ""; }
+                    
+                    let randomName = names[Math.floor(Math.random() * names.length)] + " (Level 1)";
+                    let li = document.createElement('li');
+                    li.innerHTML = `<span>${randomName}</span> <span style="color:green;">Joined</span>`;
+                    list.appendChild(li);
+                }
+            }
+
+            currentUser.wallet += commissionEarned;
+            updateDashboard();
+        }
+
+        // --- 4. बैंक ट्रांसफर ---
+        function transferToBank() {
+            if(currentUser.wallet === 0) {
+                alert("Your wallet balance is ₹0. Cannot transfer.");
+                return;
+            }
+            let amount = currentUser.wallet;
+            if(confirm(`Do you want to transfer ₹${amount} to your bank account?`)) {
+                currentUser.wallet = 0; 
+                updateDashboard();
+                alert(`₹${amount} transferred successfully!`);
+            }
+        }
+
+        // --- 5. लॉगआउट ---
+        function logout() {
+            if(confirm("Are you sure you want to logout?")) {
+                location.reload(); 
+            }
+        }
+    </script>
+</body>
+</html>
